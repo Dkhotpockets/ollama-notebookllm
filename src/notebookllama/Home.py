@@ -8,36 +8,55 @@ import sys
 import time
 import randomname
 import streamlit.components.v1 as components
+import logging
 
 from pathlib import Path
-from documents import ManagedDocument, DocumentManager
-from audio import PODCAST_GEN, PodcastConfig
+from notebookllama.documents import ManagedDocument, DocumentManager
+from notebookllama.audio import PODCAST_GEN, PodcastConfig
 from typing import Tuple
-from workflow import NotebookLMWorkflow, FileInputEvent, NotebookOutputEvent
-from instrumentation import OtelTracesSqlEngine
+from notebookllama.workflow import NotebookLMWorkflow, FileInputEvent, NotebookOutputEvent
+from notebookllama.instrumentation import OtelTracesSqlEngine
 from llama_index.observability.otel import LlamaIndexOpenTelemetry
 from opentelemetry.exporter.otlp.proto.http.trace_exporter import (
     OTLPSpanExporter,
 )
+from notebookllama.utils.async_streamlit import run_async, async_to_sync
+
+import logging
+
+logger = logging.getLogger(__name__)
 
 load_dotenv()
 
-# define a custom span exporter
-span_exporter = OTLPSpanExporter("http://localhost:4318/v1/traces")
+# Initialize document manager (optional, for storing processed documents)
+document_manager = None
+try:
+    supabase_url = os.getenv("SUPABASE_URL")
+    supabase_key = os.getenv("SUPABASE_KEY")
+    if supabase_url and supabase_key:
+        from supabase import create_client
+        from notebookllama.rag_clients.supabase_client import SupabaseDocumentAdapter
+        supabase_client = create_client(supabase_url, supabase_key)
+        document_manager = SupabaseDocumentAdapter(supabase_client)
+        logger.info("Document manager initialized with Supabase")
+except Exception as e:
+    logger.warning(f"Document manager not available: {e}")
+    document_manager = None
 
-# initialize the instrumentation object
-instrumentor = LlamaIndexOpenTelemetry(
-    service_name_or_resource="agent.traces",
-    span_exporter=span_exporter,
-    debug=True,
-)
-engine_url = f"postgresql+psycopg2://{os.getenv('pgql_user')}:{os.getenv('pgql_psw')}@localhost:5432/{os.getenv('pgql_db')}"
-sql_engine = OtelTracesSqlEngine(
-    engine_url=engine_url,
-    table_name="agent_traces",
-    service_name="agent.traces",
-)
-document_manager = DocumentManager(engine_url=engine_url)
+# OpenTelemetry instrumentation (disabled to avoid conflicts)
+# span_exporter = OTLPSpanExporter("http://localhost:4318/v1/traces")
+# instrumentor = LlamaIndexOpenTelemetry(
+#     service_name_or_resource="agent.traces",
+#     span_exporter=span_exporter,
+#     debug=True,
+# )
+# SQL engine for tracing (disabled)
+# engine_url = f"postgresql+psycopg2://{os.getenv('PGVECTOR_USER')}:{os.getenv('PGVECTOR_PASSWORD')}@localhost:5432/{os.getenv('PGVECTOR_DATABASE')}"
+# sql_engine = OtelTracesSqlEngine(
+#     engine_url=engine_url,
+#     table_name="agent_traces",
+#     service_name="agent.traces",
+# )
 
 WF = NotebookLMWorkflow(timeout=600)
 
@@ -77,19 +96,22 @@ async def run_workflow(
                 pass  # File might be locked on Windows
 
         end_time = int(time.time() * 1000000)
-        sql_engine.to_sql_database(start_time=st_time, end_time=end_time)
-        document_manager.put_documents(
-            [
-                ManagedDocument(
-                    document_name=document_title,
-                    content=result.md_content,
-                    summary=result.summary,
-                    q_and_a=q_and_a,
-                    mindmap=mind_map,
-                    bullet_points=bullet_points,
-                )
-            ]
-        )
+        # sql_engine.to_sql_database(start_time=st_time, end_time=end_time)  # Disabled
+        if document_manager:
+            document_manager.put_documents(
+                [
+                    ManagedDocument(
+                        document_name=document_title,
+                        content=result.md_content,
+                        summary=result.summary,
+                        q_and_a=q_and_a,
+                        mindmap=mind_map,
+                        bullet_points=bullet_points,
+                    )
+                ]
+            )
+        else:
+            logger.warning("Document manager not available - skipping document storage")
         return result.md_content, result.summary, q_and_a, bullet_points, mind_map
 
     finally:
@@ -104,25 +126,8 @@ async def run_workflow(
 
 
 def sync_run_workflow(file: io.BytesIO, document_title: str):
-    try:
-        # Try to use existing event loop
-        loop = asyncio.get_event_loop()
-        if loop.is_running():
-            # If loop is already running, schedule the coroutine
-            import concurrent.futures
-
-            with concurrent.futures.ThreadPoolExecutor() as executor:
-                future = executor.submit(
-                    asyncio.run, run_workflow(file, document_title)
-                )
-                return future.result()
-        else:
-            return loop.run_until_complete(run_workflow(file, document_title))
-    except RuntimeError:
-        # No event loop exists, create one
-        if sys.platform == "win32":
-            asyncio.set_event_loop_policy(asyncio.WindowsProactorEventLoopPolicy())
-        return asyncio.run(run_workflow(file, document_title))
+    """Run workflow synchronously (Streamlit compatible)"""
+    return run_async(run_workflow(file, document_title))
 
 
 async def create_podcast(file_content: str, config: PodcastConfig = None):
@@ -133,7 +138,8 @@ async def create_podcast(file_content: str, config: PodcastConfig = None):
 
 
 def sync_create_podcast(file_content: str, config: PodcastConfig = None):
-    return asyncio.run(create_podcast(file_content=file_content, config=config))
+    """Create podcast synchronously (Streamlit compatible)"""
+    return run_async(create_podcast(file_content, config))
 
 
 # Display the network
@@ -314,4 +320,5 @@ else:
     st.info("Please upload a PDF file to get started.")
 
 if __name__ == "__main__":
-    instrumentor.start_registering()
+    # instrumentor.start_registering()  # Disabled OpenTelemetry
+    pass

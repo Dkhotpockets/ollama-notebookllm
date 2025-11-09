@@ -36,7 +36,21 @@ dependencies = [
   "pyvis>=0.3.2",
   "randomname>=0.2.1",
   "streamlit>=1.46.1",
-  "textual>=3.7.1"
+  "textual>=3.7.1",
+  # RAGFlow-Slim Integration Dependencies
+  "flask>=3.0.0",
+  "flask-cors>=5.0.0",
+  "supabase>=2.8.0",
+  "graphiti-core>=0.1.0",
+  "neo4j>=5.18.0",
+  "crawl4ai>=0.2.77",
+  "google-genai>=0.3.0",
+  "PyPDF2>=3.0.1",
+  "beautifulsoup4>=4.12.0",
+  "playwright>=1.40.0",
+  "aiohttp>=3.9.0",
+  "asyncio-throttle>=1.0.0",
+  "ddgs>=1.0.0"
 ]
 
 [tool.mypy]
