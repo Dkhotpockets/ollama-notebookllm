@@ -1,0 +1,53 @@
+{
+  "success_rate": 0.7142857142857143,
+  "services": {
+    "postgresql": false,
+    "neo4j": true,
+    "ollama": true,
+    "elasticsearch": true
+  },
+  "results": [
+    {
+      "component": "PostgreSQL",
+      "success": false,
+      "message": "Check failed: asyncio.run() cannot be called from a running event loop",
+      "details": {}
+    },
+    {
+      "component": "Neo4j",
+      "success": true,
+      "message": "Connected successfully",
+      "details": {}
+    },
+    {
+      "component": "Ollama",
+      "success": true,
+      "message": "Running with 2 models: nomic-embed-text:latest, mistral:7b",
+      "details": {}
+    },
+    {
+      "component": "Elasticsearch",
+      "success": true,
+      "message": "Running version 8.11.0",
+      "details": {}
+    },
+    {
+      "component": "RAGFlow Integration",
+      "success": false,
+      "message": "Integration test failed: No module named 'src'",
+      "details": {}
+    },
+    {
+      "component": "Environment File",
+      "success": true,
+      "message": "Created .env.local",
+      "details": {}
+    },
+    {
+      "component": "Docker Compose",
+      "success": true,
+      "message": "Created docker-compose.local.yml",
+      "details": {}
+    }
+  ]
+}

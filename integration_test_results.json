@@ -1,0 +1,98 @@
+{
+  "total_tests": 13,
+  "passed_tests": 0,
+  "success_rate": 0.0,
+  "test_results": [
+    {
+      "test": "Existing Functionality",
+      "success": false,
+      "message": "Failed to load existing functionality",
+      "error": "No module named 'src'"
+    },
+    {
+      "test": "RAGFlow Integration",
+      "success": false,
+      "message": "RAGFlow integration not available",
+      "error": "No module named 'src'"
+    },
+    {
+      "test": "Supabase Client",
+      "success": false,
+      "message": "Module not available",
+      "error": null
+    },
+    {
+      "test": "Graphiti Client",
+      "success": false,
+      "message": "Module not available",
+      "error": null
+    },
+    {
+      "test": "Crawl4AI",
+      "success": false,
+      "message": "Module not available",
+      "error": null
+    },
+    {
+      "test": "LLM Provider",
+      "success": false,
+      "message": "Module not available",
+      "error": null
+    },
+    {
+      "test": "Enhanced Features",
+      "success": false,
+      "message": "Supabase not configured - skipping enhanced tests",
+      "error": null
+    },
+    {
+      "test": "MCP Server Tools",
+      "success": false,
+      "message": "MCP server test failed",
+      "error": "No module named 'src'"
+    },
+    {
+      "test": "Streamlit Page: 1_Document_Management_UI",
+      "success": false,
+      "message": "Page failed to load",
+      "error": "No module named 'src'"
+    },
+    {
+      "test": "Streamlit Page: 2_Document_Chat",
+      "success": false,
+      "message": "Page failed to load",
+      "error": "No module named 'src'"
+    },
+    {
+      "test": "Streamlit Page: 3_Interactive_Table_and_Plot_Visualization",
+      "success": false,
+      "message": "Page failed to load",
+      "error": "No module named 'src'"
+    },
+    {
+      "test": "Streamlit Page: 4_Observability_Dashboard",
+      "success": false,
+      "message": "Page failed to load",
+      "error": "No module named 'src'"
+    },
+    {
+      "test": "Streamlit Page: Enhanced_RAG_Chat",
+      "success": false,
+      "message": "RAG page failed to load",
+      "error": "No module named 'src'"
+    }
+  ],
+  "category_results": {
+    "Existing Functionality": false,
+    "RAGFlow Integration": false,
+    "Client Modules": {
+      "supabase": false,
+      "graphiti": false,
+      "crawl4ai": false,
+      "llm": false
+    },
+    "Enhanced Features": false,
+    "MCP Server Tools": false,
+    "Streamlit Pages": true
+  }
+}

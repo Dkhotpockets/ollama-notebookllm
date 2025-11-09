@@ -1,0 +1,25 @@
+============================= test session starts =============================
+platform win32 -- Python 3.13.5, pytest-8.4.2, pluggy-1.6.0 -- C:\Python313\python.exe
+cachedir: .pytest_cache
+rootdir: C:\Users\compl\notebookllama
+configfile: pytest.ini
+plugins: anyio-4.10.0, asyncio-1.2.0, base-url-2.1.0, cov-7.0.0, playwright-0.7.1
+asyncio: mode=Mode.AUTO, debug=False, asyncio_default_fixture_loop_scope=None, asyncio_default_test_loop_scope=function
+collecting ... collected 14 items
+
+tests/test_playwright_simple.py::TestHomePage::test_home_page_loads PASSED [  7%]
+tests/test_playwright_simple.py::TestHomePage::test_document_title_visible PASSED [ 14%]
+tests/test_playwright_simple.py::TestHomePage::test_file_upload_visible PASSED [ 21%]
+tests/test_playwright_simple.py::TestHomePage::test_sidebar_visible PASSED [ 28%]
+tests/test_playwright_simple.py::TestNavigation::test_navigate_to_document_management PASSED [ 35%]
+tests/test_playwright_simple.py::TestNavigation::test_navigate_to_document_chat PASSED [ 42%]
+tests/test_playwright_simple.py::TestNavigation::test_navigate_to_enhanced_rag PASSED [ 50%]
+tests/test_playwright_simple.py::TestNavigation::test_navigate_to_topic_discovery PASSED [ 57%]
+tests/test_playwright_simple.py::TestNavigation::test_navigate_to_observability PASSED [ 64%]
+tests/test_playwright_simple.py::TestDocumentManagementPage::test_load_documents_button PASSED [ 71%]
+tests/test_playwright_simple.py::TestResponsiveness::test_mobile_viewport PASSED [ 78%]
+tests/test_playwright_simple.py::TestResponsiveness::test_tablet_viewport PASSED [ 85%]
+tests/test_playwright_simple.py::TestAccessibility::test_page_title PASSED [ 92%]
+tests/test_playwright_simple.py::TestAccessibility::test_headings_present PASSED [100%]
+
+================== 14 passed, 1 warning in 67.80s (0:01:07) ===================

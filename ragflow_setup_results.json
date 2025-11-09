@@ -1,0 +1,52 @@
+{
+  "success_rate": 0.16666666666666666,
+  "available_features": {
+    "Vector Search": false,
+    "Knowledge Graph": false,
+    "Web Crawling": false,
+    "Multi-LLM": false
+  },
+  "environment_status": {
+    "SUPABASE_URL": false,
+    "SUPABASE_KEY": false,
+    "NEO4J_PASSWORD": false
+  },
+  "setup_results": [
+    {
+      "component": "ENV-SUPABASE_URL",
+      "success": false,
+      "message": "Missing - required for RAG functionality",
+      "details": null
+    },
+    {
+      "component": "ENV-SUPABASE_KEY",
+      "success": false,
+      "message": "Missing - required for RAG functionality",
+      "details": null
+    },
+    {
+      "component": "ENV-NEO4J_PASSWORD",
+      "success": false,
+      "message": "Missing - required for RAG functionality",
+      "details": null
+    },
+    {
+      "component": "ENV-LLM",
+      "success": true,
+      "message": "At least one LLM provider configured",
+      "details": null
+    },
+    {
+      "component": "LLM Providers",
+      "success": false,
+      "message": "LLM provider modules not available",
+      "details": null
+    },
+    {
+      "component": "Crawl4AI",
+      "success": false,
+      "message": "Crawl4AI not available - install with: pip install crawl4ai",
+      "details": null
+    }
+  ]
+}
