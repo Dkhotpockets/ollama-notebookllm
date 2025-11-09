@@ -8,36 +8,83 @@ import plotly.graph_objects as go
 sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), "..")))
 
 from dotenv import load_dotenv
-from instrumentation import OtelTracesSqlEngine
 from sqlalchemy import text
 
 load_dotenv()
 
-sql_engine = OtelTracesSqlEngine(
-    engine_url=f"postgresql+psycopg2://{os.getenv('pgql_user')}:{os.getenv('pgql_psw')}@localhost:5432/{os.getenv('pgql_db')}",
-    table_name="agent_traces",
-    service_name="agent.traces",
-)
+# Try to initialize SQL engine, but gracefully handle failures
+sql_engine = None
+sql_engine_error = None
+
+try:
+    from instrumentation import OtelTracesSqlEngine
+    
+    # Use PGVECTOR environment variables (not deprecated pgql_* variables)
+    pgvector_user = os.getenv('PGVECTOR_USER')
+    pgvector_password = os.getenv('PGVECTOR_PASSWORD')
+    pgvector_host = os.getenv('PGVECTOR_HOST', 'localhost')
+    pgvector_port = os.getenv('PGVECTOR_PORT', '5432')
+    pgvector_database = os.getenv('PGVECTOR_DATABASE')
+    
+    if pgvector_user and pgvector_password and pgvector_database:
+        try:
+            engine_url = f"postgresql+psycopg2://{pgvector_user}:{pgvector_password}@{pgvector_host}:{pgvector_port}/{pgvector_database}"
+            sql_engine = OtelTracesSqlEngine(
+                engine_url=engine_url,
+                table_name="agent_traces",
+                service_name="agent.traces",
+            )
+            # Test the connection immediately
+            test_conn = sql_engine._engine.connect()
+            test_conn.close()
+        except Exception as conn_error:
+            sql_engine = None
+            sql_engine_error = f"PostgreSQL connection failed: {str(conn_error)[:100]}"
+    else:
+        sql_engine_error = "PostgreSQL credentials not configured. Set PGVECTOR_USER, PGVECTOR_PASSWORD, PGVECTOR_DATABASE."
+except Exception as e:
+    sql_engine_error = f"Could not initialize SQL engine: {str(e)[:100]}"
 
 
 def display_sql() -> pd.DataFrame:
-    query = """CREATE TABLE IF NOT EXISTS agent_traces (
-    trace_id TEXT NOT NULL,
-    span_id TEXT NOT NULL,
-    parent_span_id TEXT NULL,
-    operation_name TEXT NOT NULL,
-    start_time BIGINT NOT NULL,
-    duration INTEGER NOT NULL,
-    status_code TEXT NOT NULL,
-    service_name TEXT NOT NULL
-    );"""
-    sql_engine.execute(text(query))
-    return sql_engine.to_pandas()
+    """Display SQL query results or return empty dataframe if no engine"""
+    if not sql_engine:
+        if sql_engine_error:
+            st.warning(f"⚠️ {sql_engine_error}")
+        else:
+            st.error("❌ SQL Engine not initialized. PostgreSQL connection unavailable.")
+        return pd.DataFrame()
+    
+    try:
+        query = """CREATE TABLE IF NOT EXISTS agent_traces (
+        trace_id TEXT NOT NULL,
+        span_id TEXT NOT NULL,
+        parent_span_id TEXT NULL,
+        operation_name TEXT NOT NULL,
+        start_time BIGINT NOT NULL,
+        duration INTEGER NOT NULL,
+        status_code TEXT NOT NULL,
+        service_name TEXT NOT NULL
+        );"""
+        sql_engine.execute(text(query))
+        return sql_engine.to_pandas()
+    except Exception as e:
+        st.error(f"Error executing SQL: {str(e)[:150]}")
+        return pd.DataFrame()
 
 
 def filter_traces(sql_query: str):
-    df = sql_engine.execute(text(sql_query), return_pandas=True)
-    return df
+    """Filter traces or return empty dataframe if no engine"""
+    if not sql_engine:
+        st.error("SQL Engine not initialized. PostgreSQL connection unavailable.")
+        return pd.DataFrame()
+    
+    try:
+        df = sql_engine.execute(text(sql_query), return_pandas=True)
+        return df
+    except Exception as e:
+        st.error(f"Error filtering traces: {str(e)[:150]}")
+        return pd.DataFrame()
 
 
 def create_latency_chart(df: pd.DataFrame):
@@ -140,30 +187,33 @@ else:
 st.markdown("---")
 
 # SQL Query section
-st.markdown("### SQL Query")
-sql_query = st.text_input(label="")
+if sql_engine:
+    st.markdown("### SQL Query")
+    sql_query = st.text_input(label="Enter SQL query:", placeholder="SELECT * FROM agent_traces LIMIT 10")
 
-st.markdown("## Traces Table")
-dataframe = st.dataframe(data=df_data)
+    st.markdown("## Traces Table")
+    dataframe = st.dataframe(data=df_data)
 
-if st.button("Run SQL query", type="primary"):
-    if sql_query.strip():
-        try:
-            filtered_df = filter_traces(sql_query=sql_query)
-            st.markdown("### Query Results")
-            dataframe = st.dataframe(data=filtered_df)
+    if st.button("Run SQL query", type="primary"):
+        if sql_query.strip():
+            try:
+                filtered_df = filter_traces(sql_query=sql_query)
+                st.markdown("### Query Results")
+                dataframe = st.dataframe(data=filtered_df)
 
-            # Update charts with filtered data
-            if not filtered_df.empty:
-                st.markdown("### Updated Charts")
-                col1, col2 = st.columns(2)
+                # Update charts with filtered data
+                if not filtered_df.empty:
+                    st.markdown("### Updated Charts")
+                    col1, col2 = st.columns(2)
 
-                with col1:
-                    create_latency_chart(filtered_df)
+                    with col1:
+                        create_latency_chart(filtered_df)
 
-                with col2:
-                    create_status_pie_chart(filtered_df)
-        except Exception as e:
-            st.error(f"Error executing query: {str(e)}")
-    else:
-        st.warning("Please enter a SQL query")
+                    with col2:
+                        create_status_pie_chart(filtered_df)
+            except Exception as e:
+                st.error(f"Error executing query: {str(e)}")
+        else:
+            st.warning("Please enter a SQL query")
+else:
+    st.warning("📊 **Observability Dashboard Unavailable**\n\nPostgreSQL is not configured or not running. This dashboard requires a PostgreSQL connection to display trace data.\n\nTo enable this feature:\n1. Ensure PostgreSQL is running\n2. Set PGVECTOR_USER, PGVECTOR_PASSWORD, and PGVECTOR_DATABASE environment variables\n3. Restart the application")

@@ -8,6 +8,12 @@ from src.notebookllama.documents import DocumentManager, ManagedDocument
 from sqlalchemy import text, Table
 
 ENV = load_dotenv()
+# Consider Postgres env vars present only if required pgql_* variables are set
+HAS_PG_CREDS = all([
+    os.getenv("pgql_user"),
+    os.getenv("pgql_psw"),
+    os.getenv("pgql_db"),
+])
 
 
 def is_port_open(host: str, port: int, timeout: float = 2.0) -> bool:
@@ -57,13 +63,19 @@ def documents() -> List[ManagedDocument]:
 
 
 @pytest.mark.skipif(
-    condition=not is_port_open(host="localhost", port=5432) and not ENV,
-    reason="Either Postgres is currently unavailable or you did not set any env variables in a .env file",
+    condition=not is_port_open(host="localhost", port=5432) and not HAS_PG_CREDS,
+    reason="Either Postgres is currently unavailable or you did not set pgql_* env variables in a .env file",
 )
 def test_document_manager(documents: List[ManagedDocument]) -> None:
-    engine_url = f"postgresql+psycopg2://{os.getenv('pgql_user')}:{os.getenv('pgql_psw')}@localhost:5432/{os.getenv('pgql_db')}"
+    # Prefer DATABASE_URL if provided (may include host/port), otherwise fall back to pgql_* env vars
+    db_env = os.getenv("DATABASE_URL")
+    if db_env:
+        engine_url = db_env.replace("postgresql://", "postgresql+psycopg2://")
+    else:
+        engine_url = f"postgresql+psycopg2://{os.getenv('pgql_user')}:{os.getenv('pgql_psw')}@localhost:5432/{os.getenv('pgql_db')}"
     manager = DocumentManager(engine_url=engine_url, table_name="test_documents")
-    assert not manager.table
+    # Before creating the table, internal _table should be None
+    assert manager._table is None
     manager.connection.execute(text("DROP TABLE IF EXISTS test_documents;"))
     manager.connection.commit()
     manager._create_table()

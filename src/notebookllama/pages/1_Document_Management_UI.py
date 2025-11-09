@@ -4,14 +4,26 @@ import streamlit.components.v1 as components
 from dotenv import load_dotenv
 from typing import List, Optional
 
-from documents import DocumentManager, ManagedDocument
+from notebookllama.documents import DocumentManager, ManagedDocument
 
 # Load environment variables
 load_dotenv()
 
-# Initialize the document manager
-engine_url = f"postgresql+psycopg2://{os.getenv('pgql_user')}:{os.getenv('pgql_psw')}@localhost:5432/{os.getenv('pgql_db')}"
-document_manager = DocumentManager(engine_url=engine_url)
+# Initialize Supabase client
+from supabase import create_client, Client
+
+supabase_url = os.getenv("SUPABASE_URL")
+supabase_key = os.getenv("SUPABASE_KEY")
+
+if not supabase_url or not supabase_key:
+    raise ValueError("SUPABASE_URL and SUPABASE_KEY environment variables must be set")
+
+supabase_client: Client = create_client(supabase_url, supabase_key)
+
+# Initialize the document manager with the Supabase client
+# Using Supabase instead of PostgreSQL for now due to connection issues
+from notebookllama.rag_clients.supabase_client import SupabaseDocumentAdapter
+document_manager = SupabaseDocumentAdapter(supabase_client)
 
 
 def fetch_documents(names: Optional[List[str]]) -> List[ManagedDocument]:
@@ -31,6 +43,7 @@ def display_document(document: ManagedDocument) -> None:
         st.markdown(document.summary)
 
         # Bullet Points section
+        st.markdown("## Bullet Points")
         st.markdown(document.bullet_points)
 
         # FAQ section (nested expander)
